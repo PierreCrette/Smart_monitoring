@@ -37,6 +37,7 @@ def doc():
 import os
 import re
 import sys
+# import subprocess
 import glob
 from datetime import datetime
 from pytz import timezone, AmbiguousTimeError, NonExistentTimeError
@@ -96,33 +97,25 @@ def parse_attrprint_file(filename, start_seek=0):
     ser0.append(dtu)
     # ser0.append(plain_dt)
 
+    lastvalues = f'{dtu}\n'
     while line_parts:
       id = int(line_parts.pop(0))
       norm = int(line_parts.pop(0))
       raw = int(line_parts.pop(0))
       # yield str(dtu), id, norm, raw, fd.tell()
-      if   id == 5:   ser1.append(norm)
-      elif id == 187: ser2.append(norm)
-      elif id == 188: ser3.append(norm)
-      elif id == 197: ser4.append(norm)
-      elif id == 198: ser5.append(norm)
+      lastvalues = f'{lastvalues}id {id:>3} raw={raw}\n'
+      if   id == 5:   ser1.append(raw)
+      elif id == 187: ser2.append(raw)
+      elif id == 188: ser3.append(raw)
+      elif id == 197: ser4.append(raw)
+      elif id == 198: ser5.append(raw)
       # smartmeasures.append([str(dtu), id, norm, raw, fd.tell()])
 
     # Pretty progress indicator
-    if fd.tell() % 1000 == 0:
-        print(f"{int(((fd.tell() - start_seek) / (file_size - start_seek))*100):>5}%", end='\r')
+    # if fd.tell() % 1000 == 0:
+    #     print(f"{int(((fd.tell() - start_seek) / (file_size - start_seek))*100):>5}%", end='\r')
   print()
-  # df = pd.DataFrame(
-  #   {
-  #     "dtu": ser0,
-  #     "id5": ser1,
-  #     "id187": ser2,
-  #     "id188": ser3,
-  #     "id197": ser4,
-  #     "id198": ser5,
-  #   })
-  print()  
-  return
+  return lastvalues
 
 
 def percentage(ser, gap=0):
@@ -131,7 +124,7 @@ def percentage(ser, gap=0):
   if len(ser) < 1:
     serout = [0 for v in ser0]
   else:
-    maxval = max(ser)
+    maxval = max(1, max(ser))
     serout = [v / maxval + gap for v in ser] 
   return serout
 
@@ -156,7 +149,7 @@ def import_attrprint_file(filename):
   ser4 = []
   ser5 = []
 
-  parse_attrprint_file(filename)
+  lastvalues = parse_attrprint_file(filename)
 
   print()
   print(f'{drive_name} analysed from {min(ser0)} to {max(ser0)}')
@@ -166,18 +159,24 @@ def import_attrprint_file(filename):
   summarize(ser4, 'id197')
   summarize(ser5, 'id198')
   print()
+  # p2 = subprocess.Popen(f"smartctl -a /dev/disk/by-id/{drive_name}", stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)  # , **kwargs
+  # out, err = p2.communicate()
+  # return_code = p2.poll()
+  print(lastvalues)
+  print()
 
   # Note that even in the OO-style, we use `.pyplot.figure` to create the Figure.
   fig, ax = plt.subplots(figsize=(5, 2.7), layout='constrained')
   ax.plot(ser0, percentage(ser1, 0), label='id5')
-  ax.plot(ser0, percentage(ser2, 1), label='id187')
-  ax.plot(ser0, percentage(ser3, 2), label='id188')
-  ax.plot(ser0, percentage(ser4, 3), label='id197')
-  ax.plot(ser0, percentage(ser5, 4), label='id198')
+  ax.plot(ser0, percentage(ser2, 0.5), label='id187')
+  ax.plot(ser0, percentage(ser3, 1), label='id188')
+  ax.plot(ser0, percentage(ser4, 1.5), label='id197')
+  ax.plot(ser0, percentage(ser5, 2), label='id198')
   # ax.set_xlabel('Time')  # Add an x-label to the Axes.
   # ax.set_ylabel('SMART')  # Add a y-label to the Axes.
   ax.set_title(drive_name)  # Add a title to the Axes.
   ax.legend()  # Add a legend.
+  plt.yticks([])
   plt.show()
 
 

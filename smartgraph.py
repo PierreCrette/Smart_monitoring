@@ -124,8 +124,9 @@ def percentage(ser, gap=0):
   if len(ser) < 1:
     serout = [0 for v in ser0]
   else:
-    maxval = max(1, max(ser))
-    serout = [v / maxval + gap for v in ser] 
+    maxval = max(ser) + 1
+    minval = min(ser) - 1
+    serout = [(v - minval) / (maxval - minval) + gap for v in ser] 
   return serout
 
 
